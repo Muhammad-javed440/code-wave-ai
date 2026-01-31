@@ -1,19 +1,28 @@
--- ================================================
--- CODE WAVE AI PLATFORM - SUPABASE DATABASE SCHEMA
--- Complete setup with all security fixes
--- ================================================
+-- =================================================
+-- CODE WAVE AI PLATFORM - FINAL SQL (TYPES SAFE)
+-- =================================================
 
--- ================================================
+-- =================================================
+-- 0. ENUMS
+-- =================================================
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'user_role') THEN
+    CREATE TYPE user_role AS ENUM ('ADMIN', 'USER');
+  END IF;
+END$$;
+
+-- =================================================
 -- 1. TABLES
--- ================================================
+-- =================================================
 
--- 1.1 Profiles Table (Syncs with Supabase Auth)
+-- 1.1 Profiles
 CREATE TABLE IF NOT EXISTS profiles (
   id UUID REFERENCES auth.users ON DELETE CASCADE PRIMARY KEY,
   email TEXT UNIQUE NOT NULL,
-  full_name TEXT,
+  full_name TEXT NOT NULL,
   phone_number TEXT,
-  role TEXT DEFAULT 'USER' CHECK (role IN ('ADMIN', 'USER')),
+  role user_role DEFAULT 'USER',
   avatar_url TEXT,
   bio TEXT,
   social_links JSONB DEFAULT '{}'::jsonb,
@@ -21,14 +30,14 @@ CREATE TABLE IF NOT EXISTS profiles (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.2 Projects Table
+-- 1.2 Projects
 CREATE TABLE IF NOT EXISTS projects (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   title TEXT NOT NULL,
   description TEXT,
   media TEXT[] DEFAULT '{}',
   video_url TEXT,
-  price NUMERIC(10,2) DEFAULT NULL,
+  price NUMERIC(10,2),
   rating NUMERIC(3,2) DEFAULT 0,
   likes_count INTEGER DEFAULT 0,
   views_count INTEGER DEFAULT 0,
@@ -37,35 +46,36 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.3 Project Ratings Table
+-- 1.3 Project Ratings
 CREATE TABLE IF NOT EXISTS project_ratings (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
-  rating INTEGER CHECK (rating >= 1 AND rating <= 5),
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  rating INTEGER CHECK (rating BETWEEN 1 AND 5),
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(project_id, user_id)
+  UNIQUE (project_id, user_id)
 );
 
--- 1.4 Project Likes Table
+-- 1.4 Project Likes
 CREATE TABLE IF NOT EXISTS project_likes (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
   created_at TIMESTAMPTZ DEFAULT NOW(),
-  UNIQUE(project_id, user_id)
+  UNIQUE (project_id, user_id)
 );
 
--- 1.5 Project Comments Table
+-- 1.5 Project Comments
 CREATE TABLE IF NOT EXISTS project_comments (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
-  project_id UUID REFERENCES projects(id) ON DELETE CASCADE NOT NULL,
-  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+  project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  user_name TEXT NOT NULL,
   content TEXT NOT NULL,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.6 Site Visits Table
+-- 1.6 Site Visits
 CREATE TABLE IF NOT EXISTS site_visits (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   path TEXT DEFAULT '/',
@@ -73,140 +83,145 @@ CREATE TABLE IF NOT EXISTS site_visits (
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 1.7 Contact Messages Table
+-- 1.7 Skills
+CREATE TABLE IF NOT EXISTS skills (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  category TEXT NOT NULL,
+  proficiency INTEGER CHECK (proficiency BETWEEN 0 AND 100),
+  icon TEXT,
+  description TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 1.8 Team Members
+CREATE TABLE IF NOT EXISTS team_members (
+  id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+  name TEXT NOT NULL,
+  role TEXT NOT NULL,
+  description TEXT,
+  image_url TEXT,
+  email TEXT,
+  social_links JSONB DEFAULT '{}'::jsonb,
+  display_order INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 1.9 Contact Messages
 CREATE TABLE IF NOT EXISTS contact_messages (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
   name TEXT NOT NULL,
   email TEXT NOT NULL,
+  subject TEXT,
   message TEXT NOT NULL,
-  location_text TEXT,
   is_read BOOLEAN DEFAULT false,
   created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ================================================
--- 2. ENABLE ROW LEVEL SECURITY
--- ================================================
-
+-- =================================================
+-- 2. ENABLE RLS
+-- =================================================
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_ratings ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_likes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE project_comments ENABLE ROW LEVEL SECURITY;
 ALTER TABLE site_visits ENABLE ROW LEVEL SECURITY;
+ALTER TABLE skills ENABLE ROW LEVEL SECURITY;
+ALTER TABLE team_members ENABLE ROW LEVEL SECURITY;
 ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
--- ================================================
+-- =================================================
 -- 3. RLS POLICIES
--- ================================================
+-- =================================================
 
--- Profiles: Public read, users can update own profile
-CREATE POLICY "profiles_select" ON profiles
-FOR SELECT USING (true);
+-- PROFILES
+CREATE POLICY "profiles_read" ON profiles FOR SELECT USING (true);
+CREATE POLICY "profiles_insert" ON profiles FOR INSERT WITH CHECK (auth.uid() = id);
+CREATE POLICY "profiles_update" ON profiles FOR UPDATE USING (auth.uid() = id);
 
-CREATE POLICY "profiles_insert" ON profiles
-FOR INSERT WITH CHECK (auth.uid() = id);
-
-CREATE POLICY "profiles_update" ON profiles
-FOR UPDATE USING (auth.uid() = id);
-
--- Projects: Public read, admin full access
-CREATE POLICY "projects_select" ON projects
-FOR SELECT USING (true);
-
-CREATE POLICY "projects_insert" ON projects
-FOR INSERT WITH CHECK (
+-- PROJECTS (public read, admin write)
+CREATE POLICY "projects_read" ON projects FOR SELECT USING (true);
+CREATE POLICY "projects_admin_write" ON projects
+FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
 );
 
-CREATE POLICY "projects_update" ON projects
-FOR UPDATE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
-);
-
-CREATE POLICY "projects_delete" ON projects
-FOR DELETE USING (
-  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
-);
-
--- Project Ratings: Public read, authenticated users can rate
-CREATE POLICY "ratings_select" ON project_ratings
-FOR SELECT USING (true);
-
+-- RATINGS (public read, owner insert, owner + admin delete)
+CREATE POLICY "ratings_read" ON project_ratings FOR SELECT USING (true);
 CREATE POLICY "ratings_insert" ON project_ratings
 FOR INSERT WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "ratings_update" ON project_ratings
-FOR UPDATE USING (auth.uid() = user_id);
-
 CREATE POLICY "ratings_delete" ON project_ratings
-FOR DELETE USING (auth.uid() = user_id);
+FOR DELETE USING (
+  auth.uid() = user_id
+  OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
 
--- Project Likes: Public read, authenticated users can like
-CREATE POLICY "likes_select" ON project_likes
-FOR SELECT USING (true);
-
+-- LIKES (public read, owner insert, owner + admin delete)
+CREATE POLICY "likes_read" ON project_likes FOR SELECT USING (true);
 CREATE POLICY "likes_insert" ON project_likes
 FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "likes_delete" ON project_likes
-FOR DELETE USING (auth.uid() = user_id);
+FOR DELETE USING (
+  auth.uid() = user_id
+  OR EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
 
--- Project Comments: Public read, authenticated users can comment
-CREATE POLICY "comments_select" ON project_comments
-FOR SELECT USING (true);
-
+-- COMMENTS (public read, owner insert, owner + admin delete)
+CREATE POLICY "comments_read" ON project_comments FOR SELECT USING (true);
 CREATE POLICY "comments_insert" ON project_comments
 FOR INSERT WITH CHECK (auth.uid() = user_id);
-
 CREATE POLICY "comments_delete" ON project_comments
 FOR DELETE USING (
   auth.uid() = user_id OR
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
 );
 
--- Site Visits: Public insert with validation, admin read
+-- VISITS (anonymous insert, admin-only read)
 CREATE POLICY "visits_insert" ON site_visits
-FOR INSERT WITH CHECK (
-  path IS NOT NULL AND
-  length(path) < 500 AND
-  (user_agent IS NULL OR length(user_agent) < 1000)
-);
-
-CREATE POLICY "visits_admin_select" ON site_visits
+FOR INSERT WITH CHECK (length(path) < 500);
+CREATE POLICY "visits_admin_read" ON site_visits
 FOR SELECT USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
 );
 
--- Contact Messages: Public insert with validation, admin full access
-CREATE POLICY "messages_insert" ON contact_messages
-FOR INSERT WITH CHECK (
-  length(name) > 0 AND
-  length(email) > 0 AND
-  length(message) > 0 AND
-  email ~* '^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}$'
-);
-
-CREATE POLICY "messages_admin_select" ON contact_messages
-FOR SELECT USING (
+-- SKILLS (public read, admin write)
+CREATE POLICY "skills_read" ON skills FOR SELECT USING (true);
+CREATE POLICY "skills_admin_write" ON skills
+FOR ALL USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
 );
 
-CREATE POLICY "messages_admin_update" ON contact_messages
+-- TEAM MEMBERS (public read, admin write)
+CREATE POLICY "team_read" ON team_members FOR SELECT USING (true);
+CREATE POLICY "team_admin_write" ON team_members
+FOR ALL USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
+
+-- CONTACT MESSAGES (anonymous insert, admin manage)
+CREATE POLICY "contact_insert" ON contact_messages
+FOR INSERT WITH CHECK (length(message) < 5000);
+CREATE POLICY "contact_admin_read" ON contact_messages
+FOR SELECT USING (
+  EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
+CREATE POLICY "contact_admin_update" ON contact_messages
 FOR UPDATE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
 );
-
-CREATE POLICY "messages_admin_delete" ON contact_messages
+CREATE POLICY "contact_admin_delete" ON contact_messages
 FOR DELETE USING (
   EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
 );
 
--- ================================================
--- 4. FUNCTIONS (with search_path security fix)
--- ================================================
+-- =================================================
+-- 4. FUNCTIONS
+-- =================================================
 
--- 4.1 Auto-update updated_at timestamp
+-- updated_at
 CREATE OR REPLACE FUNCTION public.update_updated_at()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -219,7 +234,7 @@ BEGIN
 END;
 $$;
 
--- 4.2 Update project likes count
+-- likes count
 CREATE OR REPLACE FUNCTION public.update_project_likes_count()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -228,15 +243,15 @@ SET search_path = public
 AS $$
 BEGIN
   IF TG_OP = 'INSERT' THEN
-    UPDATE public.projects SET likes_count = likes_count + 1 WHERE id = NEW.project_id;
-  ELSIF TG_OP = 'DELETE' THEN
-    UPDATE public.projects SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = OLD.project_id;
+    UPDATE projects SET likes_count = likes_count + 1 WHERE id = NEW.project_id;
+  ELSE
+    UPDATE projects SET likes_count = GREATEST(likes_count - 1, 0) WHERE id = OLD.project_id;
   END IF;
   RETURN NULL;
 END;
 $$;
 
--- 4.3 Update project average rating
+-- rating avg
 CREATE OR REPLACE FUNCTION public.update_project_rating()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -244,10 +259,10 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  UPDATE public.projects
+  UPDATE projects
   SET rating = (
     SELECT COALESCE(ROUND(AVG(rating)::numeric, 2), 0)
-    FROM public.project_ratings
+    FROM project_ratings
     WHERE project_id = COALESCE(NEW.project_id, OLD.project_id)
   )
   WHERE id = COALESCE(NEW.project_id, OLD.project_id);
@@ -255,7 +270,7 @@ BEGIN
 END;
 $$;
 
--- 4.4 Auto-create profile on user signup
+-- auth → profile
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER
 LANGUAGE plpgsql
@@ -263,14 +278,17 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.profiles (id, email, full_name, role)
+  INSERT INTO profiles (id, email, full_name, role)
   VALUES (
     NEW.id,
     NEW.email,
     COALESCE(NEW.raw_user_meta_data->>'full_name', split_part(NEW.email, '@', 1)),
     CASE
-      WHEN NEW.email IN ('meherjaved440@gmail.com', 'javedstore1013@gmail.com', 'codewaveai44@gmail.com')
-      THEN 'ADMIN'
+      WHEN NEW.email IN (
+        'meherjaved440@gmail.com',
+        'javedstore1013@gmail.com',
+        'codewaveai44@gmail.com'
+      ) THEN 'ADMIN'
       ELSE 'USER'
     END
   );
@@ -278,82 +296,87 @@ BEGIN
 END;
 $$;
 
--- ================================================
+-- =================================================
 -- 5. TRIGGERS
--- ================================================
-
--- Auto-update updated_at for profiles
-DROP TRIGGER IF EXISTS profiles_updated_at ON profiles;
+-- =================================================
 CREATE TRIGGER profiles_updated_at
-  BEFORE UPDATE ON profiles
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+BEFORE UPDATE ON profiles
+FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Auto-update updated_at for projects
-DROP TRIGGER IF EXISTS projects_updated_at ON projects;
 CREATE TRIGGER projects_updated_at
-  BEFORE UPDATE ON projects
-  FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+BEFORE UPDATE ON projects
+FOR EACH ROW EXECUTE FUNCTION update_updated_at();
 
--- Update likes count when likes change
-DROP TRIGGER IF EXISTS on_like_change ON project_likes;
+CREATE TRIGGER skills_updated_at
+BEFORE UPDATE ON skills
+FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
+CREATE TRIGGER team_updated_at
+BEFORE UPDATE ON team_members
+FOR EACH ROW EXECUTE FUNCTION update_updated_at();
+
 CREATE TRIGGER on_like_change
-  AFTER INSERT OR DELETE ON project_likes
-  FOR EACH ROW EXECUTE FUNCTION update_project_likes_count();
+AFTER INSERT OR DELETE ON project_likes
+FOR EACH ROW EXECUTE FUNCTION update_project_likes_count();
 
--- Update rating when ratings change
-DROP TRIGGER IF EXISTS on_rating_change ON project_ratings;
 CREATE TRIGGER on_rating_change
-  AFTER INSERT OR UPDATE OR DELETE ON project_ratings
-  FOR EACH ROW EXECUTE FUNCTION update_project_rating();
+AFTER INSERT OR UPDATE OR DELETE ON project_ratings
+FOR EACH ROW EXECUTE FUNCTION update_project_rating();
 
--- Auto-create profile on signup
-DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;
 CREATE TRIGGER on_auth_user_created
-  AFTER INSERT ON auth.users
-  FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
+AFTER INSERT ON auth.users
+FOR EACH ROW EXECUTE FUNCTION public.handle_new_user();
 
--- ================================================
--- 6. STORAGE BUCKET & POLICIES
--- ================================================
+-- =================================================
+-- 6. STORAGE BUCKETS & POLICIES
+-- =================================================
 
--- Create storage bucket for project media
-INSERT INTO storage.buckets (id, name, public)
-VALUES ('projects', 'projects', true)
-ON CONFLICT (id) DO NOTHING;
+-- Avatars bucket (public read, user uploads own)
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true);
 
--- Storage: Public read access
-CREATE POLICY "storage_public_read" ON storage.objects
-FOR SELECT USING (bucket_id = 'projects');
+CREATE POLICY "avatars_public_read" ON storage.objects
+FOR SELECT USING (bucket_id = 'avatars');
 
--- Storage: Admin upload
-CREATE POLICY "storage_admin_upload" ON storage.objects
+CREATE POLICY "avatars_upload_own" ON storage.objects
 FOR INSERT WITH CHECK (
-  bucket_id = 'projects'
-  AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'ADMIN')
+  bucket_id = 'avatars'
+  AND auth.role() = 'authenticated'
+  AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- Storage: Admin update
-CREATE POLICY "storage_admin_update" ON storage.objects
+CREATE POLICY "avatars_update_own" ON storage.objects
 FOR UPDATE USING (
-  bucket_id = 'projects'
-  AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'ADMIN')
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- Storage: Admin delete
-CREATE POLICY "storage_admin_delete" ON storage.objects
+CREATE POLICY "avatars_delete_own" ON storage.objects
 FOR DELETE USING (
-  bucket_id = 'projects'
-  AND EXISTS (SELECT 1 FROM public.profiles WHERE id = auth.uid() AND role = 'ADMIN')
+  bucket_id = 'avatars'
+  AND (storage.foldername(name))[1] = auth.uid()::text
 );
 
--- ================================================
--- SETUP COMPLETE!
---
--- After running this SQL:
--- 1. Go to Authentication > Providers > Email
--- 2. Make sure "Enable Email Signup" is ON
--- 3. Copy your API keys from Settings > API
--- 4. Update your .env.local with the correct keys:
---    VITE_SUPABASE_URL=https://YOUR_PROJECT.supabase.co
---    VITE_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIs...
--- ================================================
+-- Project media bucket (public read, admin-only write)
+INSERT INTO storage.buckets (id, name, public) VALUES ('project-media', 'project-media', true);
+
+CREATE POLICY "project_media_public_read" ON storage.objects
+FOR SELECT USING (bucket_id = 'project-media');
+
+CREATE POLICY "project_media_admin_insert" ON storage.objects
+FOR INSERT WITH CHECK (
+  bucket_id = 'project-media'
+  AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
+
+CREATE POLICY "project_media_admin_update" ON storage.objects
+FOR UPDATE USING (
+  bucket_id = 'project-media'
+  AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
+
+CREATE POLICY "project_media_admin_delete" ON storage.objects
+FOR DELETE USING (
+  bucket_id = 'project-media'
+  AND EXISTS (SELECT 1 FROM profiles WHERE id = auth.uid() AND role = 'ADMIN')
+);
+
