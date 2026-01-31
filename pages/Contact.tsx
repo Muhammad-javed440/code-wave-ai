@@ -59,6 +59,7 @@ const Contact: React.FC = () => {
     e.preventDefault();
     setIsSubmitting(true);
     try {
+      // 1. Save to Supabase
       const { error } = await supabase
         .from('contact_messages')
         .insert({
@@ -67,8 +68,22 @@ const Contact: React.FC = () => {
           message: formData.message,
           location_text: location
         });
-      
+
       if (error) throw error;
+
+      // 2. Send email to codewaveai44@gmail.com via FormSubmit
+      await fetch('https://formsubmit.co/ajax/codewaveai44@gmail.com', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          message: formData.message,
+          location: location,
+          _subject: `New Contact from ${formData.name} — CodeWaveAI`,
+        })
+      });
+
       setSubmitted(true);
     } catch (err) {
       alert("Error sending message. Please try again.");
