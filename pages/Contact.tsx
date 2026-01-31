@@ -89,7 +89,7 @@ const Contact: React.FC = () => {
           </div>
 
           <div className="space-y-8">
-            <div className="flex items-center space-x-6 p-6 bg-white dark:bg-black border border-gray-100 dark:border-gray-900 rounded-3xl group hover:border-orange-500 transition-all shadow-xl shadow-black/5">
+            <a href={`https://mail.google.com/mail/?view=cm&to=codewaveai44@gmail.com&su=${encodeURIComponent(`Inquiry from ${user?.full_name || 'Visitor'} — CodeWaveAI`)}&body=${encodeURIComponent(`Hi CodeWaveAI Team,\n\nMy name is ${user?.full_name || 'a visitor'} and I'm reaching out because I'm interested in your AI solutions.\n\nI'd love to discuss how we can work together.\n\nLooking forward to hearing from you!\n\nBest regards,\n${user?.full_name || 'Visitor'}`)}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-6 p-6 bg-white dark:bg-black border border-gray-100 dark:border-gray-900 rounded-3xl group hover:border-orange-500 transition-all shadow-xl shadow-black/5 cursor-pointer">
               <div className="p-4 bg-orange-600/10 text-orange-600 rounded-2xl group-hover:scale-110 transition-transform">
                 <Mail className="w-6 h-6" />
               </div>
@@ -97,7 +97,7 @@ const Contact: React.FC = () => {
                 <p className="text-[10px] font-black text-gray-400 uppercase tracking-[0.2em]">Send an Email</p>
                 <p className="text-lg font-black text-black dark:text-white">codewaveai44@gmail.com</p>
               </div>
-            </div>
+            </a>
 
             <a href={officeMapsUrl} target="_blank" rel="noopener noreferrer" className="block bg-white dark:bg-black border border-gray-100 dark:border-gray-900 rounded-3xl group hover:border-red-500 transition-all shadow-xl shadow-black/5 overflow-hidden cursor-pointer">
               <div className="flex items-center space-x-6 p-6">
@@ -125,7 +125,7 @@ const Contact: React.FC = () => {
             </a>
 
             {user ? (
-              <a href={`https://wa.me/923238300086?text=${encodeURIComponent(`Welcome to CodeWaveAI! I'm ${user.full_name} and I'd like to connect.`)}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-6 p-6 bg-white dark:bg-black border border-gray-100 dark:border-gray-900 rounded-3xl group hover:border-green-500 transition-all shadow-xl shadow-black/5 cursor-pointer">
+              <a href={`https://wa.me/923238300086?text=${encodeURIComponent(`Hi CodeWaveAI Team,\n\nMy name is ${user.full_name} and I'm reaching out because I'm interested in your AI solutions.\n\nI'd love to discuss how we can work together.\n\nLooking forward to hearing from you!\n\nBest regards,\n${user.full_name}`)}`} target="_blank" rel="noopener noreferrer" className="flex items-center space-x-6 p-6 bg-white dark:bg-black border border-gray-100 dark:border-gray-900 rounded-3xl group hover:border-green-500 transition-all shadow-xl shadow-black/5 cursor-pointer">
                 <div className="p-4 bg-green-600/10 text-green-600 rounded-2xl group-hover:scale-110 transition-transform">
                   <MessageSquare className="w-6 h-6" />
                 </div>
