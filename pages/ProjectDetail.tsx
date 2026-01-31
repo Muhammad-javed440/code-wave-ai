@@ -18,6 +18,7 @@ const ProjectDetail: React.FC = () => {
   const [likesCount, setLikesCount] = useState(0);
   const [userRating, setUserRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
+  const [avgRating, setAvgRating] = useState(0);
   const [commentText, setCommentText] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [lightbox, setLightbox] = useState<string | null>(null);
@@ -33,6 +34,7 @@ const ProjectDetail: React.FC = () => {
       if (projectRes.data) {
         setProject(projectRes.data);
         setLikesCount(projectRes.data.likes_count || 0);
+        setAvgRating(projectRes.data.rating || 0);
       }
       if (commentsRes.data) setComments(commentsRes.data);
 
@@ -78,6 +80,9 @@ const ProjectDetail: React.FC = () => {
       { project_id: id, user_id: user.id, rating },
       { onConflict: 'project_id,user_id' }
     );
+    // Refresh average rating from DB (trigger updates projects.rating)
+    const { data } = await supabase.from('projects').select('rating').eq('id', id).single();
+    if (data) setAvgRating(data.rating || 0);
   };
 
   const submitComment = async (e: React.FormEvent) => {
@@ -218,7 +223,7 @@ const ProjectDetail: React.FC = () => {
               />
             </button>
           ))}
-          <span className="ml-2 text-sm text-gray-500 font-bold">{project.rating || 0} avg</span>
+          <span className="ml-2 text-sm text-gray-500 font-bold">{avgRating} avg</span>
         </div>
 
         {!user && <span className="text-xs text-gray-400">Log in to like, rate & comment</span>}
@@ -226,7 +231,9 @@ const ProjectDetail: React.FC = () => {
 
       {/* Comments */}
       <div>
-        <h2 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter mb-6">Comments</h2>
+        <h2 className="text-2xl font-black text-black dark:text-white uppercase tracking-tighter mb-6">
+          Comments <span className="text-orange-600">({comments.length})</span>
+        </h2>
 
         {user && (
           <form onSubmit={submitComment} className="flex gap-3 mb-8">

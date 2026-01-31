@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase';
 
 const Projects: React.FC = () => {
   const [projects, setProjects] = useState<Project[]>([]);
+  const [commentCounts, setCommentCounts] = useState<Record<string, number>>({});
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -17,9 +18,25 @@ const Projects: React.FC = () => {
           .from('projects')
           .select('*')
           .order('created_at', { ascending: false });
-        
+
         if (error) throw error;
         setProjects(data || []);
+
+        // Fetch comment counts for all projects
+        if (data && data.length > 0) {
+          const ids = data.map((p: Project) => p.id);
+          const { data: counts } = await supabase
+            .from('project_comments')
+            .select('project_id')
+            .in('project_id', ids);
+          if (counts) {
+            const map: Record<string, number> = {};
+            counts.forEach((row: any) => {
+              map[row.project_id] = (map[row.project_id] || 0) + 1;
+            });
+            setCommentCounts(map);
+          }
+        }
       } catch (err) {
         console.error("Error fetching projects:", err);
       } finally {
@@ -87,7 +104,7 @@ const Projects: React.FC = () => {
                     </button>
                     <button className="flex items-center space-x-1.5 text-gray-400 hover:text-orange-500 transition-colors">
                       <MessageSquare className="w-5 h-5" />
-                      <span className="text-sm font-bold">0</span>
+                      <span className="text-sm font-bold">{commentCounts[project.id] || 0}</span>
                     </button>
                   </div>
                   
