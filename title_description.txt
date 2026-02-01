@@ -1,0 +1,52 @@
+========================================================
+CODE WAVE AI — Project Title & Description
+========================================================
+
+TITLE:
+Code Wave AI — Premium AI Technology & Web Innovation Platform
+
+SHORT DESCRIPTION:
+A modern, full-stack web platform showcasing AI-driven projects, voice automation solutions, and web innovation with secure role-based authentication, media-rich project showcases, and a powerful admin panel.
+
+DETAILED DESCRIPTION:
+Code Wave AI is a premium technology brand platform built with React 19, TypeScript, Vite, and Supabase. The platform serves as a professional digital presence for showcasing AI and automation projects with an engaging, interactive user experience.
+
+KEY FEATURES:
+- Role-based authentication (Admin & User) with Supabase Auth
+- Project showcase with image/video galleries, ratings, likes, and comments
+- Team management system for displaying team members on the About page
+- Admin dashboard with visitor analytics and traffic charts
+- Contact form with geolocation capture
+- Dark/Light mode with glassmorphism UI design
+- Clickable URLs auto-detected in project descriptions
+- Fully responsive design for all screen sizes
+- Row Level Security (RLS) enforced on all database tables
+- Dockerized deployment with Nginx
+
+TECH STACK:
+- Frontend: React 19 + TypeScript + Vite 6
+- Styling: Tailwind CSS 3.4 (Dark/Light mode)
+- Backend: Supabase (Auth, PostgreSQL, RLS, Storage)
+- Routing: React Router v7 (HashRouter)
+- Charts: Recharts
+- Icons: Lucide React
+- Deployment: Vercel (frontend), Docker + Nginx (containerized)
+
+LIVE URL:
+https://code-wave-786.vercel.app
+
+GITHUB:
+https://github.com/Muhammad-javed440/code-wave-ai
+
+DOCKER IMAGE:
+meherjaved440/code-wave-ai:latest (Private)
+
+TAGS:
+React, TypeScript, Vite, Supabase, Tailwind CSS, AI, Automation, Voice Chatbot, Admin Panel, Dashboard, Dark Mode, Docker, Nginx, Full-Stack, Web Platform
+
+CATEGORY:
+AI Technology / Web Development / SaaS Platform
+
+AUTHOR:
+Code Wave AI Team
+========================================================
