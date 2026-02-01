@@ -1,0 +1,296 @@
+========================================================
+DOCKER VOLUMES — Complete Guide
+========================================================
+
+1. WHAT IS A VOLUME?
+========================================================
+
+A volume is a persistent storage mechanism in Docker that
+exists outside the container's filesystem. Containers are
+ephemeral — when deleted, all data inside them is lost.
+Volumes solve this by storing data separately.
+
+Without Volume:
+  Container starts → writes data → container deleted → DATA GONE
+
+With Volume:
+  Container starts → writes data to volume → container deleted → DATA STILL EXISTS
+
+
+2. WHY DO WE NEED VOLUMES?
+========================================================
+
+2.1 Data Persistence
+--------------------
+Databases, file uploads, logs — anything that must survive
+container restarts or recreation.
+
+Example: PostgreSQL database
+  docker run -v my_db_data:/var/lib/postgresql/data postgres
+
+Delete the container, recreate it — your database is intact.
+
+2.2 Shared Data Between Containers
+-----------------------------------
+Multiple containers can read and write to the same volume.
+
+  docker run -v shared_vol:/data container_1
+  docker run -v shared_vol:/data container_2
+
+Both containers access the same files in /data.
+
+2.3 Development (Live Code Reload)
+-----------------------------------
+Mount your local project folder into a container so code
+changes reflect instantly without rebuilding the image.
+
+  docker run -v /path/to/project:/app node:20-alpine npm run dev
+
+2.4 Backups
+-----------
+Since volumes are managed by Docker, they can be easily
+backed up, restored, or migrated between hosts.
+
+2.5 Performance
+---------------
+Named volumes on Linux have better I/O performance than
+bind mounts for database workloads.
+
+
+3. TYPES OF VOLUMES
+========================================================
+
+3.1 Named Volumes (Recommended for Production)
+-----------------------------------------------
+Docker creates and manages the storage location.
+You reference it by name.
+
+  docker volume create my_data
+  docker run -v my_data:/app/data my_image
+
+Where is data stored?
+  Linux:   /var/lib/docker/volumes/my_data/_data
+  Windows: \\wsl$\docker-desktop-data\data\docker\volumes\
+
+Pros:
+  - Docker manages lifecycle
+  - Easy to backup and restore
+  - Works across all platforms
+  - Best performance for databases
+
+Cons:
+  - Not directly accessible from host filesystem
+
+3.2 Bind Mounts (Best for Development)
+---------------------------------------
+Maps a specific host directory into the container.
+
+  docker run -v C:\my-project:/app my_image
+  docker run -v /home/user/project:/app my_image
+
+Pros:
+  - Direct access to host files
+  - Live code editing during development
+  - Full control over storage location
+
+Cons:
+  - Depends on host directory structure
+  - Permission issues on Linux
+  - Slower on macOS/Windows for large projects
+
+3.3 tmpfs Mounts (Temporary / RAM)
+------------------------------------
+Data stored in memory only. Never written to disk.
+Lost when container stops.
+
+  docker run --tmpfs /tmp my_image
+
+Pros:
+  - Very fast (RAM-based)
+  - Secure (data never hits disk)
+  - Good for sensitive temporary data
+
+Cons:
+  - Data lost on container stop
+  - Limited by available RAM
+  - Linux only
+
+
+4. VOLUME COMMANDS
+========================================================
+
+Create a volume:
+  docker volume create my_volume
+
+List all volumes:
+  docker volume ls
+
+Inspect a volume (see details):
+  docker volume inspect my_volume
+
+Remove a specific volume:
+  docker volume rm my_volume
+
+Remove ALL unused volumes:
+  docker volume prune
+
+Remove all unused volumes (force, no prompt):
+  docker volume prune -f
+
+
+5. USING VOLUMES WITH docker run
+========================================================
+
+Named volume:
+  docker run -d -v my_data:/data nginx
+
+Bind mount (absolute path required):
+  docker run -d -v /host/path:/container/path nginx
+
+Read-only volume:
+  docker run -d -v my_data:/data:ro nginx
+
+Multiple volumes:
+  docker run -d \
+    -v db_data:/var/lib/postgresql/data \
+    -v db_logs:/var/log/postgresql \
+    postgres
+
+tmpfs mount:
+  docker run -d --tmpfs /tmp:size=100m nginx
+
+
+6. USING VOLUMES WITH docker-compose
+========================================================
+
+version: "3.8"
+services:
+  database:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_PASSWORD: secret
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+  app:
+    image: my_app
+    volumes:
+      - ./src:/app/src          # bind mount for development
+      - app_uploads:/app/uploads # named volume for uploads
+
+volumes:
+  db_data:        # Docker manages this
+  app_uploads:    # Docker manages this
+
+
+7. VOLUME BACKUP & RESTORE
+========================================================
+
+Backup a volume to a tar file:
+  docker run --rm \
+    -v my_data:/data \
+    -v $(pwd):/backup \
+    alpine tar czf /backup/my_data_backup.tar.gz -C /data .
+
+Restore from backup:
+  docker run --rm \
+    -v my_data:/data \
+    -v $(pwd):/backup \
+    alpine tar xzf /backup/my_data_backup.tar.gz -C /data
+
+
+8. PRACTICAL EXAMPLES
+========================================================
+
+8.1 PostgreSQL with Persistent Data
+-------------------------------------
+  docker run -d \
+    --name my_postgres \
+    -v postgres_data:/var/lib/postgresql/data \
+    -e POSTGRES_PASSWORD=mysecret \
+    -e POSTGRES_DB=myapp \
+    -p 5432:5432 \
+    postgres:16-alpine
+
+8.2 MongoDB with Persistent Data
+----------------------------------
+  docker run -d \
+    --name my_mongo \
+    -v mongo_data:/data/db \
+    -p 27017:27017 \
+    mongo:7
+
+8.3 Redis with Persistent Data
+--------------------------------
+  docker run -d \
+    --name my_redis \
+    -v redis_data:/data \
+    -p 6379:6379 \
+    redis:alpine redis-server --appendonly yes
+
+8.4 Nginx with Custom Config (Bind Mount)
+-------------------------------------------
+  docker run -d \
+    --name my_nginx \
+    -v /path/to/nginx.conf:/etc/nginx/conf.d/default.conf:ro \
+    -v /path/to/html:/usr/share/nginx/html:ro \
+    -p 80:80 \
+    nginx:alpine
+
+8.5 Node.js Development with Live Reload
+------------------------------------------
+  docker run -d \
+    --name my_node \
+    -v /path/to/project:/app \
+    -w /app \
+    -p 3000:3000 \
+    node:20-alpine npm run dev
+
+
+9. CODE WAVE AI PROJECT — VOLUME USAGE
+========================================================
+
+The Code Wave AI Docker container does NOT require volumes because:
+
+  - Database:     Hosted on Supabase (cloud PostgreSQL)
+  - File Uploads: Stored in Supabase Storage (cloud)
+  - Auth:         Handled by Supabase Auth (cloud)
+  - Frontend:     Static files served by Nginx (no state)
+
+The container is stateless — it only serves built HTML/CSS/JS files.
+No data is stored inside the container.
+
+Run without volumes:
+  docker run -d -p 3000:80 meherjaved440/code-wave-ai:latest
+
+If in the future you add a local database or file storage,
+you would then need volumes:
+
+  docker run -d \
+    -p 3000:80 \
+    -v uploads:/app/uploads \
+    meherjaved440/code-wave-ai:latest
+
+
+10. COMMON MISTAKES
+========================================================
+
+Mistake 1: Using relative paths with bind mounts
+  WRONG:  docker run -v ./data:/data nginx
+  RIGHT:  docker run -v /full/path/to/data:/data nginx
+
+Mistake 2: Forgetting volumes in docker-compose
+  WRONG:  No top-level "volumes:" section
+  RIGHT:  Declare all named volumes at the bottom
+
+Mistake 3: Not backing up volumes before pruning
+  docker volume prune   # THIS DELETES ALL UNUSED VOLUMES
+
+Mistake 4: Running database without a volume
+  docker run postgres   # DATA LOST ON CONTAINER RESTART
+  docker run -v db:/var/lib/postgresql/data postgres  # SAFE
+
+
+========================================================
+END OF DOCKER VOLUMES GUIDE
+========================================================
