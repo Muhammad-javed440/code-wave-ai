@@ -1,11 +1,12 @@
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Plus, Trash2, Edit3, Image as ImageIcon, X, Loader2, Save, Clock, Film, Calendar, Upload, AlertCircle, CheckCircle, DollarSign } from 'lucide-react';
+import { Plus, Trash2, Edit3, Image as ImageIcon, X, Loader2, Save, Clock, Film, Calendar, Upload, AlertCircle, CheckCircle, DollarSign, Link, FileText } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { Project } from '../../types';
 
 const MAX_IMAGE_SIZE_MB = 5;
 const MAX_VIDEO_SIZE_MB = 50;
+const MAX_PDF_SIZE_MB = 10;
 const UPLOAD_TIMEOUT_MS = 300000; // 5 minutes per file
 
 const formatFileSize = (bytes: number) => {
@@ -40,8 +41,12 @@ const AdminProjects: React.FC = () => {
   const [imagePreviews, setImagePreviews] = useState<string[]>(Array(6).fill(''));
   const [videoFile, setVideoFile] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
+  const [projectUrl, setProjectUrl] = useState('');
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
+  const [pdfPreview, setPdfPreview] = useState<string | null>(null);
 
   const videoInputRef = useRef<HTMLInputElement>(null);
+  const pdfInputRef = useRef<HTMLInputElement>(null);
   const imageInputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
   // Fetch projects on mount
@@ -78,6 +83,9 @@ const AdminProjects: React.FC = () => {
     setImagePreviews(Array(6).fill(''));
     setVideoFile(null);
     setVideoPreview(null);
+    setProjectUrl('');
+    setPdfFile(null);
+    setPdfPreview(null);
     setIsEditing(null);
     setError(null);
     setSuccess(null);
@@ -149,6 +157,30 @@ const AdminProjects: React.FC = () => {
     setVideoFile(null);
     setVideoPreview(null);
     if (videoInputRef.current) videoInputRef.current.value = '';
+  };
+
+  const handlePdfUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > MAX_PDF_SIZE_MB * 1024 * 1024) {
+        setError(`PDF too large (${formatFileSize(file.size)}). Maximum allowed is ${MAX_PDF_SIZE_MB}MB.`);
+        e.target.value = '';
+        return;
+      }
+      if (file.type !== 'application/pdf') {
+        setError('Only PDF files are allowed.');
+        e.target.value = '';
+        return;
+      }
+      setPdfFile(file);
+      setPdfPreview(file.name);
+    }
+  };
+
+  const removePdf = () => {
+    setPdfFile(null);
+    setPdfPreview(null);
+    if (pdfInputRef.current) pdfInputRef.current.value = '';
   };
 
   // Upload file to Supabase Storage with timeout
@@ -249,6 +281,13 @@ const AdminProjects: React.FC = () => {
         videoUrl = await uploadFile(videoFile, 'videos');
       }
 
+      // Upload PDF
+      let pdfUrl = pdfPreview && !pdfFile ? pdfPreview : null;
+      if (pdfFile) {
+        setUploadProgress(`Uploading PDF (${formatFileSize(pdfFile.size)})...`);
+        pdfUrl = await uploadFile(pdfFile, 'pdfs');
+      }
+
       setUploadProgress('Saving project...');
 
       const projectData = {
@@ -256,6 +295,8 @@ const AdminProjects: React.FC = () => {
         description: description.trim(),
         media: mediaUrls,
         video_url: videoUrl,
+        project_url: projectUrl.trim() || null,
+        pdf_url: pdfUrl,
         price: projectPrice ? parseFloat(projectPrice) : null,
         updated_at: new Date().toISOString(),
       };
@@ -320,6 +361,8 @@ const AdminProjects: React.FC = () => {
     setProjectDate(project.created_at ? project.created_at.slice(0, 16) : getCurrentLocalDateTime());
     setProjectPrice(project.price ? project.price.toString() : '');
 
+    setProjectUrl(project.project_url || '');
+
     // Set existing image previews
     const previews = Array(6).fill('');
     project.media?.forEach((url, idx) => {
@@ -331,6 +374,11 @@ const AdminProjects: React.FC = () => {
     // Set video preview if exists
     if (project.video_url) {
       setVideoPreview(project.video_url);
+    }
+
+    // Set PDF preview if exists
+    if (project.pdf_url) {
+      setPdfPreview(project.pdf_url);
     }
 
     setIsAdding(true);
@@ -427,6 +475,20 @@ const AdminProjects: React.FC = () => {
                 </div>
 
                 <div className="space-y-2">
+                  <label className="text-xs font-black text-orange-600 uppercase tracking-widest ml-1">Project URL</label>
+                  <div className="relative">
+                    <Link className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-blue-600" />
+                    <input
+                      type="url"
+                      value={projectUrl}
+                      onChange={(e) => setProjectUrl(e.target.value)}
+                      className="w-full bg-gray-50 dark:bg-gray-950 border-2 border-gray-200 dark:border-gray-900 rounded-2xl py-4 pl-12 pr-4 text-black dark:text-white focus:border-blue-500 outline-none transition-all font-bold"
+                      placeholder="https://example.com"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
                   <label className="text-xs font-black text-orange-600 uppercase tracking-widest ml-1">Work Description *</label>
                   <textarea
                     value={description}
@@ -435,6 +497,52 @@ const AdminProjects: React.FC = () => {
                     className="w-full bg-gray-50 dark:bg-gray-950 border-2 border-gray-200 dark:border-gray-900 rounded-2xl p-4 text-black dark:text-white focus:border-orange-500 outline-none transition-all font-medium"
                     placeholder="Describe your innovation..."
                   />
+                </div>
+
+                {/* PDF Section */}
+                <div className="bg-blue-600/5 border-2 border-blue-500/20 p-6 rounded-3xl space-y-4">
+                  <div className="flex items-center space-x-2 text-blue-600">
+                    <FileText className="w-5 h-5" />
+                    <h3 className="font-black uppercase tracking-widest text-sm">Project PDF (Optional)</h3>
+                  </div>
+
+                  <div className="flex flex-col items-center justify-center p-6 border-2 border-dashed border-blue-500/30 rounded-3xl bg-white dark:bg-black/50 hover:bg-blue-500/5 transition-all relative group overflow-hidden">
+                    {pdfPreview ? (
+                      <div className="w-full space-y-3">
+                        <div className="flex items-center gap-3 p-3 bg-blue-500/10 rounded-xl">
+                          <FileText className="w-6 h-6 text-blue-600 flex-shrink-0" />
+                          <span className="text-sm font-bold text-black dark:text-white truncate">
+                            {pdfFile ? pdfFile.name : 'Uploaded PDF'}
+                          </span>
+                          {pdfFile && (
+                            <span className="text-[10px] font-bold text-gray-500 ml-auto flex-shrink-0">
+                              {formatFileSize(pdfFile.size)}
+                            </span>
+                          )}
+                        </div>
+                        <button
+                          type="button"
+                          onClick={removePdf}
+                          className="w-full py-2 bg-red-600 text-white font-black rounded-xl text-[10px] flex items-center justify-center uppercase tracking-widest"
+                        >
+                          <Trash2 className="w-3 h-3 mr-2" /> Remove PDF
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          ref={pdfInputRef}
+                          onChange={handlePdfUpload}
+                          className="absolute inset-0 opacity-0 cursor-pointer"
+                        />
+                        <Upload className="w-8 h-8 text-blue-600 mb-2 group-hover:scale-110 transition-transform" />
+                        <p className="text-xs font-black text-gray-500 uppercase tracking-tight">Click to upload PDF</p>
+                        <p className="text-[10px] text-gray-400 mt-1 uppercase font-bold">Max {MAX_PDF_SIZE_MB}MB</p>
+                      </>
+                    )}
+                  </div>
                 </div>
 
                 {/* Video Section */}
@@ -619,6 +727,16 @@ const AdminProjects: React.FC = () => {
                         {p.video_url && (
                           <span className="px-3 py-1 bg-red-500/10 text-red-600 text-[10px] font-black rounded-full border border-red-500/20 uppercase">
                             1 Video
+                          </span>
+                        )}
+                        {p.pdf_url && (
+                          <span className="px-3 py-1 bg-blue-500/10 text-blue-600 text-[10px] font-black rounded-full border border-blue-500/20 uppercase">
+                            PDF
+                          </span>
+                        )}
+                        {p.project_url && (
+                          <span className="px-3 py-1 bg-green-500/10 text-green-600 text-[10px] font-black rounded-full border border-green-500/20 uppercase">
+                            URL
                           </span>
                         )}
                       </div>

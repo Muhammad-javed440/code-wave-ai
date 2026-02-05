@@ -25,6 +25,8 @@ export interface Project {
   description: string;
   media: string[]; // Image URLs
   video_url?: string; // Video URL
+  project_url?: string; // External project link
+  pdf_url?: string; // PDF file URL
   price?: number; // Price in USD
   rating: number; // Avg rating
   likes_count: number;

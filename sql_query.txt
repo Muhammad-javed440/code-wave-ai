@@ -37,6 +37,8 @@ CREATE TABLE IF NOT EXISTS projects (
   description TEXT,
   media TEXT[] DEFAULT '{}',
   video_url TEXT,
+  project_url TEXT,
+  pdf_url TEXT,
   price NUMERIC(10,2),
   rating NUMERIC(3,2) DEFAULT 0,
   likes_count INTEGER DEFAULT 0,
