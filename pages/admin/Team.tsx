@@ -351,9 +351,9 @@ const AdminTeam: React.FC = () => {
                 className="group bg-gray-50 dark:bg-gray-950 rounded-3xl p-6 hover:shadow-xl transition-all duration-300 relative overflow-hidden"
               >
                 <div className="flex flex-col items-center text-center">
-                  <div className="w-24 h-24 rounded-full overflow-hidden border-4 border-white dark:border-gray-900 shadow-xl mb-4">
+                  <div className="w-28 h-28 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-xl mb-4 bg-gray-100 dark:bg-gray-900">
                     {member.image_url ? (
-                      <img src={member.image_url} alt={member.name} className="w-full h-full object-cover" />
+                      <img src={member.image_url} alt={member.name} className="w-full h-full object-contain" />
                     ) : (
                       <div className="w-full h-full bg-orange-500/10 flex items-center justify-center">
                         <User className="w-10 h-10 text-orange-600" />

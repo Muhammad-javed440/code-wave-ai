@@ -212,12 +212,12 @@ const About: React.FC = () => {
                     {/* Profile Image */}
                     <div className="relative mb-6">
                       <div className="absolute -inset-2 bg-gradient-to-r from-orange-500 to-red-500 rounded-full blur opacity-0 group-hover:opacity-50 transition-opacity"></div>
-                      <div className="relative w-32 h-32 rounded-full overflow-hidden border-4 border-white dark:border-gray-900 shadow-xl">
+                      <div className="relative w-32 h-32 rounded-2xl overflow-hidden border-4 border-white dark:border-gray-900 shadow-xl bg-gray-100 dark:bg-gray-900">
                         {member.image_url ? (
                           <img
                             src={member.image_url}
                             alt={member.name}
-                            className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                            className="w-full h-full object-contain group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
                           <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
