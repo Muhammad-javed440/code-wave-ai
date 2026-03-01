@@ -128,7 +128,7 @@ const Home: React.FC = () => {
               <div className="absolute -inset-6 sm:-inset-10 bg-orange-600/10 dark:bg-orange-600/20 blur-[60px] sm:blur-[100px] rounded-full"></div>
               <div className="relative rounded-2xl sm:rounded-[3rem] overflow-hidden border-4 sm:border-8 border-white dark:border-black shadow-2xl rotate-1 sm:rotate-2 hover:rotate-0 transition-transform duration-500">
                 <img
-                  src="https://media.licdn.com/dms/image/D4E12AQF1onXg1t3wfA/article-cover_image-shrink_720_1280/0/1719739445610?e=2147483647&v=beta&t=c1d8UwrB-DKcN7LRl2CTYMNBcRG4rz9Iwge3HfNBGHU"
+                  src="/hero.jpg"
                   alt="AI Technology"
                   className="w-full h-auto aspect-video object-cover"
                 />
@@ -163,7 +163,7 @@ const Home: React.FC = () => {
             <div className="group bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden hover:border-orange-500 transition-all duration-300 shadow-xl shadow-black/5">
               <div className="h-36 sm:h-48 overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1535378917042-10a22c95931a?auto=format&fit=crop&q=80&w=600"
+                  src="https://images.unsplash.com/photo-1589254065878-42c014d074b8?auto=format&fit=crop&q=80&w=600"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   alt="Talking AI"
                 />
@@ -181,7 +181,7 @@ const Home: React.FC = () => {
             <div className="group bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden hover:border-green-500 transition-all duration-300 shadow-xl shadow-black/5">
               <div className="h-36 sm:h-48 overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1485827404703-89b55fcc595e?auto=format&fit=crop&q=80&w=600"
+                  src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=600"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   alt="Automation"
                 />
