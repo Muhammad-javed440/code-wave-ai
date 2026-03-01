@@ -1,8 +1,11 @@
 
 import React, { useEffect, useState } from 'react';
-import { Zap, Bot, Code, Cpu, ArrowRight } from 'lucide-react';
+import { Zap, ArrowRight, Star, Heart, ExternalLink, Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
+import { useAuth } from '../context/AuthContext';
+import { Project } from '../types';
+import DualImageFrame from '../components/DualImageFrame';
 import ChatBot from '../components/ChatBot';
 
 const Counter = ({ target, label }: { target: number, label: string }) => {
@@ -41,12 +44,33 @@ const Counter = ({ target, label }: { target: number, label: string }) => {
 };
 
 const Home: React.FC = () => {
+  const { user } = useAuth();
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [projectsLoading, setProjectsLoading] = useState(true);
   const [stats, setStats] = useState({
     totalVisits: 0,
     uniqueUsers: 0,
     toolsBuilt: 0,
     totalLikes: 0
   });
+
+  useEffect(() => {
+    const fetchProjects = async () => {
+      try {
+        const { data, error } = await supabase
+          .from('projects')
+          .select('*')
+          .order('created_at', { ascending: false })
+          .limit(6);
+        if (!error && data) setProjects(data);
+      } catch (err) {
+        console.error('Error fetching projects:', err);
+      } finally {
+        setProjectsLoading(false);
+      }
+    };
+    fetchProjects();
+  }, []);
 
   useEffect(() => {
     const fetchRealData = async () => {
@@ -117,9 +141,11 @@ const Home: React.FC = () => {
                 <Link to="/projects" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-red-600 hover:bg-red-700 text-white font-black rounded-2xl flex items-center justify-center transition-all shadow-xl shadow-red-600/30 text-sm sm:text-base active:scale-95">
                   SEE OUR WORK <ArrowRight className="ml-2 w-4 h-4 sm:w-5 sm:h-5" />
                 </Link>
-                <Link to="/contact" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/80 dark:bg-black/80 backdrop-blur-md hover:bg-gray-50 dark:hover:bg-gray-900 text-black dark:text-white font-bold border-2 border-black dark:border-white rounded-2xl flex items-center justify-center transition-all text-sm sm:text-base active:scale-95">
-                  CONTACT US
-                </Link>
+                {user && (
+                  <Link to="/contact" className="w-full sm:w-auto px-6 sm:px-8 py-3.5 sm:py-4 bg-white/80 dark:bg-black/80 backdrop-blur-md hover:bg-gray-50 dark:hover:bg-gray-900 text-black dark:text-white font-bold border-2 border-black dark:border-white rounded-2xl flex items-center justify-center transition-all text-sm sm:text-base active:scale-95">
+                    CONTACT US
+                  </Link>
+                )}
               </div>
             </div>
 
@@ -150,6 +176,66 @@ const Home: React.FC = () => {
         </div>
       </section>
 
+      {/* Our Projects Section */}
+      <section className="py-14 sm:py-20 md:py-24 relative z-10">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex flex-col sm:flex-row sm:items-end justify-between mb-10 sm:mb-16 gap-4">
+            <div>
+              <h2 className="text-2xl sm:text-3xl md:text-5xl font-black text-black dark:text-white mb-3 sm:mb-4 uppercase tracking-tighter">OUR PROJECTS</h2>
+              <div className="w-14 sm:w-20 h-1.5 sm:h-2 bg-orange-600 rounded-full"></div>
+            </div>
+            <Link to="/projects" className="flex items-center text-orange-600 hover:text-red-600 font-bold text-sm sm:text-base transition-colors">
+              VIEW ALL <ArrowRight className="ml-2 w-4 h-4" />
+            </Link>
+          </div>
+
+          {projectsLoading ? (
+            <div className="flex flex-col items-center justify-center py-20">
+              <Loader2 className="w-10 h-10 text-orange-600 animate-spin mb-3" />
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-xs">Loading Projects...</p>
+            </div>
+          ) : projects.length === 0 ? (
+            <div className="text-center py-16 bg-gray-50 dark:bg-gray-900/50 rounded-2xl sm:rounded-[2rem] border border-dashed border-gray-200 dark:border-gray-800">
+              <p className="text-gray-500 font-bold uppercase tracking-widest text-sm">No projects yet</p>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5 sm:gap-6 md:gap-8">
+              {projects.map((project) => (
+                <Link key={project.id} to={`/projects/${project.id}`} className="group bg-white dark:bg-black border border-gray-200 dark:border-gray-900 rounded-2xl sm:rounded-[2rem] overflow-hidden hover:border-orange-500 transition-all duration-500 flex flex-col">
+                  <div className="p-2 sm:p-3">
+                    <DualImageFrame
+                      image1={project.media?.[0] || 'https://via.placeholder.com/800x450'}
+                      image2={project.media?.[1] || 'https://via.placeholder.com/800x450'}
+                      alt={project.title}
+                    />
+                  </div>
+                  <div className="p-4 sm:p-6 flex-grow space-y-3">
+                    <div className="flex items-start justify-between gap-2">
+                      <h3 className="text-lg sm:text-xl font-black text-black dark:text-white uppercase tracking-tighter line-clamp-2">{project.title}</h3>
+                      <div className="flex items-center text-orange-600 font-bold bg-orange-600/10 px-2 py-1 rounded-lg text-sm shrink-0">
+                        <Star className="w-4 h-4 mr-1 fill-current" /> {project.rating || 0}
+                      </div>
+                    </div>
+                    <p className="text-gray-600 dark:text-gray-400 text-sm line-clamp-2 leading-relaxed">{project.description}</p>
+                    <div className="pt-3 flex items-center justify-between border-t border-gray-100 dark:border-gray-900">
+                      <div className="flex items-center space-x-3 text-gray-400">
+                        <span className="flex items-center space-x-1.5">
+                          <Heart className="w-4 h-4" />
+                          <span className="text-sm font-bold">{project.likes_count || 0}</span>
+                        </span>
+                      </div>
+                      <span className="p-2 bg-gray-100 dark:bg-gray-900 text-orange-600 rounded-xl group-hover:bg-orange-600 group-hover:text-white transition-all">
+                        <ExternalLink className="w-4 h-4" />
+                      </span>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* What We Do Section */}
       <section className="py-14 sm:py-20 md:py-24 relative bg-gray-50/50 dark:bg-black/50 backdrop-blur-3xl z-10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -163,7 +249,7 @@ const Home: React.FC = () => {
             <div className="group bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden hover:border-orange-500 transition-all duration-300 shadow-xl shadow-black/5">
               <div className="h-36 sm:h-48 overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1589254065878-42c014d074b8?auto=format&fit=crop&q=80&w=600"
+                  src="/talk-ai.avif"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   alt="Talking AI"
                 />
@@ -181,7 +267,7 @@ const Home: React.FC = () => {
             <div className="group bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden hover:border-green-500 transition-all duration-300 shadow-xl shadow-black/5">
               <div className="h-36 sm:h-48 overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1620712943543-bcc4688e7485?auto=format&fit=crop&q=80&w=600"
+                  src="/auto-systems.jpg"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   alt="Automation"
                 />
@@ -199,7 +285,7 @@ const Home: React.FC = () => {
             <div className="group bg-white/80 dark:bg-gray-900/80 backdrop-blur-md border border-gray-200 dark:border-gray-800 rounded-2xl sm:rounded-[2.5rem] overflow-hidden hover:border-red-500 transition-all duration-300 shadow-xl shadow-black/5 sm:col-span-2 md:col-span-1">
               <div className="h-36 sm:h-48 overflow-hidden">
                 <img
-                  src="https://images.unsplash.com/photo-1547658719-da2b51169166?auto=format&fit=crop&q=80&w=600"
+                  src="/web-app.webp"
                   className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                   alt="Web Apps"
                 />

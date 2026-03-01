@@ -22,7 +22,7 @@ const Navbar: React.FC = () => {
     { name: 'Home', path: '/' },
     { name: 'Our Work', path: '/projects' },
     { name: 'About Us', path: '/about' },
-    { name: 'Contact Us', path: '/contact' },
+    ...(user ? [{ name: 'Contact Us', path: '/contact' }] : []),
   ];
 
   const isActive = (path: string) => location.pathname === path;
