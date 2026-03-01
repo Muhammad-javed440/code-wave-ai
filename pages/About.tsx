@@ -60,7 +60,7 @@ const About: React.FC = () => {
           <div className="relative animate-in zoom-in duration-700 mt-4 lg:mt-0">
             <div className="absolute -inset-4 bg-gradient-to-r from-orange-600 to-red-600 blur-3xl opacity-20 rounded-2xl sm:rounded-[3rem]"></div>
             <div className="relative aspect-square rounded-2xl sm:rounded-[3rem] overflow-hidden border-4 sm:border-8 border-white dark:border-black shadow-2xl rotate-1 sm:rotate-2">
-              <img src="https://images.unsplash.com/photo-1522071820081-009f0129c71c?auto=format&fit=crop&q=80&w=800" className="w-full h-full object-cover" alt="Our Team" />
+              <img src="/group-business.jpg" className="w-full h-full object-cover" alt="Our Team" />
             </div>
           </div>
         </div>
