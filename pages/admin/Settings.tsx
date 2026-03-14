@@ -1,6 +1,6 @@
 
-import React, { useState, useRef } from 'react';
-import { Camera, Facebook, Linkedin, Github, Globe, Save, Check, Loader2 } from 'lucide-react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { Camera, Facebook, Linkedin, Github, Globe, Save, Check, Loader2, Move, Crosshair } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../lib/supabase';
 
@@ -9,6 +9,76 @@ const AdminSettings: React.FC = () => {
   const [isSaved, setIsSaved] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const positionerRef = useRef<HTMLDivElement>(null);
+  const [showPositioner, setShowPositioner] = useState(false);
+  const [posX, setPosX] = useState(user?.avatar_position?.x ?? 50);
+  const [posY, setPosY] = useState(user?.avatar_position?.y ?? 50);
+  const [isDragging, setIsDragging] = useState(false);
+
+  // Sync position state when user data loads
+  useEffect(() => {
+    if (user?.avatar_position) {
+      setPosX(user.avatar_position.x);
+      setPosY(user.avatar_position.y);
+    }
+  }, [user?.avatar_position]);
+
+  // Drag handlers for avatar position
+  const handlePositionChange = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    const container = positionerRef.current;
+    if (!container) return;
+    const rect = container.getBoundingClientRect();
+    let clientX: number, clientY: number;
+    if ('touches' in e) {
+      clientX = e.touches[0].clientX;
+      clientY = e.touches[0].clientY;
+    } else {
+      clientX = e.clientX;
+      clientY = e.clientY;
+    }
+    const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+    const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+    setPosX(Math.round(x));
+    setPosY(Math.round(y));
+  }, []);
+
+  const handlePointerDown = useCallback((e: React.MouseEvent | React.TouchEvent) => {
+    e.preventDefault();
+    setIsDragging(true);
+    handlePositionChange(e);
+  }, [handlePositionChange]);
+
+  useEffect(() => {
+    if (!isDragging) return;
+    const handleMove = (e: MouseEvent | TouchEvent) => {
+      const container = positionerRef.current;
+      if (!container) return;
+      const rect = container.getBoundingClientRect();
+      let clientX: number, clientY: number;
+      if ('touches' in e) {
+        clientX = e.touches[0].clientX;
+        clientY = e.touches[0].clientY;
+      } else {
+        clientX = e.clientX;
+        clientY = e.clientY;
+      }
+      const x = Math.max(0, Math.min(100, ((clientX - rect.left) / rect.width) * 100));
+      const y = Math.max(0, Math.min(100, ((clientY - rect.top) / rect.height) * 100));
+      setPosX(Math.round(x));
+      setPosY(Math.round(y));
+    };
+    const handleUp = () => setIsDragging(false);
+    window.addEventListener('mousemove', handleMove);
+    window.addEventListener('mouseup', handleUp);
+    window.addEventListener('touchmove', handleMove);
+    window.addEventListener('touchend', handleUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMove);
+      window.removeEventListener('mouseup', handleUp);
+      window.removeEventListener('touchmove', handleMove);
+      window.removeEventListener('touchend', handleUp);
+    };
+  }, [isDragging]);
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,6 +120,7 @@ const AdminSettings: React.FC = () => {
     updateProfile({
       full_name: formData.fullName,
       bio: formData.bio,
+      avatar_position: { x: posX, y: posY },
       social_links: {
         facebook: formData.facebook,
         linkedin: formData.linkedin,
@@ -72,26 +143,71 @@ const AdminSettings: React.FC = () => {
         <div className="bg-gray-900 border border-gray-800 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] flex flex-col md:flex-row items-center gap-5 sm:gap-8 relative overflow-hidden">
           <div className="absolute top-0 right-0 p-16 bg-blue-600/5 blur-3xl rounded-full"></div>
           
-          <div className="relative group">
-            <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-blue-600 flex items-center justify-center text-3xl sm:text-4xl font-black border-4 border-gray-800 shadow-2xl overflow-hidden">
-              {user?.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" /> : user?.full_name[0]}
+          <div className="flex flex-col items-center gap-3">
+            <div className="relative group">
+              <div className="w-24 h-24 sm:w-32 sm:h-32 rounded-full bg-blue-600 flex items-center justify-center text-3xl sm:text-4xl font-black border-4 border-gray-800 shadow-2xl overflow-hidden">
+                {user?.avatar_url ? <img src={user.avatar_url} className="w-full h-full object-cover" style={{ objectPosition: `${posX}% ${posY}%` }} /> : user?.full_name[0]}
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                ref={avatarInputRef}
+                className="hidden"
+                onChange={handleAvatarUpload}
+              />
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="absolute bottom-0 right-0 p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full border-4 border-gray-900 shadow-lg group-hover:scale-110 transition-all disabled:opacity-50"
+              >
+                {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+              </button>
             </div>
-            <input
-              type="file"
-              accept="image/*"
-              ref={avatarInputRef}
-              className="hidden"
-              onChange={handleAvatarUpload}
-            />
-            <button
-              type="button"
-              onClick={() => avatarInputRef.current?.click()}
-              disabled={uploadingAvatar}
-              className="absolute bottom-0 right-0 p-3 bg-blue-600 hover:bg-blue-500 text-white rounded-full border-4 border-gray-900 shadow-lg group-hover:scale-110 transition-all disabled:opacity-50"
-            >
-              {uploadingAvatar ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
-            </button>
+            {user?.avatar_url && (
+              <button
+                type="button"
+                onClick={() => setShowPositioner(!showPositioner)}
+                className={`text-xs font-bold uppercase tracking-wider px-3 py-1.5 rounded-xl flex items-center gap-1.5 transition-all ${
+                  showPositioner ? 'bg-blue-600 text-white' : 'bg-gray-800 text-gray-400 hover:text-white hover:bg-gray-700'
+                }`}
+              >
+                <Move className="w-3 h-3" /> Adjust Position
+              </button>
+            )}
           </div>
+
+          {/* Avatar Position Adjuster */}
+          {showPositioner && user?.avatar_url && (
+            <div className="w-full md:w-auto md:absolute md:top-full md:left-0 md:mt-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 space-y-3 z-30">
+              <div className="flex items-center justify-between">
+                <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Drag to set focal point</span>
+                <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg flex items-center gap-1">
+                  <Move className="w-3 h-3" /> {posX}%, {posY}%
+                </span>
+              </div>
+              <div
+                ref={positionerRef}
+                className="relative w-full aspect-square max-w-[240px] mx-auto rounded-xl overflow-hidden cursor-crosshair select-none border-2 border-gray-700"
+                onMouseDown={handlePointerDown}
+                onTouchStart={handlePointerDown}
+              >
+                <img src={user.avatar_url} className="w-full h-full object-cover" style={{ objectPosition: `${posX}% ${posY}%` }} />
+                {/* Crosshair indicator */}
+                <div
+                  className="absolute w-6 h-6 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-10"
+                  style={{ left: `${posX}%`, top: `${posY}%` }}
+                >
+                  <Crosshair className="w-6 h-6 text-white drop-shadow-[0_0_4px_rgba(0,0,0,0.8)]" />
+                </div>
+                {/* Crosshair lines */}
+                <div className="absolute inset-0 pointer-events-none" style={{ opacity: isDragging ? 0.5 : 0.2 }}>
+                  <div className="absolute bg-white/60 h-px w-full" style={{ top: `${posY}%` }} />
+                  <div className="absolute bg-white/60 w-px h-full" style={{ left: `${posX}%` }} />
+                </div>
+              </div>
+            </div>
+          )}
           
           <div className="flex-grow space-y-4 text-center md:text-left">
             <div className="space-y-1">

@@ -15,7 +15,8 @@
       "Bash(python:*)",
       "Bash(npx playwright:*)",
       "Bash(git add:*)",
-      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd project URL and PDF upload fields to admin project form\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")"
+      "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd project URL and PDF upload fields to admin project form\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
+      "Bash(cd:*)"
     ]
   }
 }

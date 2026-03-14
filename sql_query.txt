@@ -24,6 +24,7 @@ CREATE TABLE IF NOT EXISTS profiles (
   phone_number TEXT,
   role user_role DEFAULT 'USER',
   avatar_url TEXT,
+  avatar_position JSONB DEFAULT '{"x":50,"y":50}'::jsonb,
   bio TEXT,
   social_links JSONB DEFAULT '{}'::jsonb,
   created_at TIMESTAMPTZ DEFAULT NOW(),

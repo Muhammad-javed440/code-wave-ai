@@ -119,7 +119,7 @@ const About: React.FC = () => {
                   <div className="absolute -inset-3 bg-gradient-to-r from-orange-500 to-red-500 rounded-full blur opacity-30 group-hover:opacity-60 transition-opacity"></div>
                   <div className="relative w-28 h-28 sm:w-40 sm:h-40 rounded-full overflow-hidden border-4 border-white dark:border-gray-900 shadow-2xl">
                     {founder.avatar_url ? (
-                      <img src={founder.avatar_url} alt={founder.full_name} className="w-full h-full object-cover" />
+                      <img src={founder.avatar_url} alt={founder.full_name} className="w-full h-full object-cover" style={{ objectPosition: `${founder.avatar_position?.x ?? 50}% ${founder.avatar_position?.y ?? 50}%` }} />
                     ) : (
                       <div className="w-full h-full bg-gradient-to-br from-orange-500 to-red-500 flex items-center justify-center">
                         <span className="text-5xl font-black text-white">{founder.full_name?.[0]}</span>

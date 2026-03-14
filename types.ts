@@ -11,6 +11,7 @@ export interface Profile {
   phone_number?: string;
   role: UserRole;
   avatar_url?: string;
+  avatar_position?: { x: number; y: number };
   bio?: string;
   social_links?: {
     facebook?: string;
