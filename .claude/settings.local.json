@@ -16,7 +16,18 @@
       "Bash(npx playwright:*)",
       "Bash(git add:*)",
       "Bash(git commit -m \"$\\(cat <<''EOF''\nAdd project URL and PDF upload fields to admin project form\n\nCo-Authored-By: Claude Opus 4.5 <noreply@anthropic.com>\nEOF\n\\)\")",
-      "Bash(cd:*)"
+      "Bash(cd:*)",
+      "WebFetch(domain:code-wave-786.vercel.app)",
+      "Bash(npx:*)",
+      "Bash(npm install:*)",
+      "Bash(npm search:*)",
+      "Bash(claude mcp:*)",
+      "mcp__playwright__browser_navigate",
+      "mcp__playwright__browser_click",
+      "mcp__playwright__browser_fill_form",
+      "mcp__playwright__browser_take_screenshot",
+      "mcp__playwright__browser_snapshot",
+      "mcp__playwright__browser_evaluate"
     ]
   }
 }

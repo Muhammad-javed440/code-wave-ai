@@ -140,7 +140,7 @@ const AdminSettings: React.FC = () => {
 
       <form onSubmit={handleSave} className="space-y-8 sm:space-y-12">
         {/* Profile Header Card */}
-        <div className="bg-gray-900 border border-gray-800 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] flex flex-col md:flex-row items-center gap-5 sm:gap-8 relative overflow-hidden">
+        <div className="bg-gray-900 border border-gray-800 p-5 sm:p-8 rounded-2xl sm:rounded-[2.5rem] flex flex-col md:flex-row items-center gap-5 sm:gap-8 relative">
           <div className="absolute top-0 right-0 p-16 bg-blue-600/5 blur-3xl rounded-full"></div>
           
           <div className="flex flex-col items-center gap-3">
@@ -179,7 +179,7 @@ const AdminSettings: React.FC = () => {
 
           {/* Avatar Position Adjuster */}
           {showPositioner && user?.avatar_url && (
-            <div className="w-full md:w-auto md:absolute md:top-full md:left-0 md:mt-4 bg-gray-800 border border-gray-700 rounded-2xl p-4 space-y-3 z-30">
+            <div className="w-full md:w-64 bg-gray-800 border border-gray-700 rounded-2xl p-4 space-y-3 z-30">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Drag to set focal point</span>
                 <span className="text-[10px] font-bold text-blue-400 bg-blue-500/10 px-2 py-1 rounded-lg flex items-center gap-1">
